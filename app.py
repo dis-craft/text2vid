@@ -19,7 +19,7 @@ if st.button("Generate Video"):
         video_filename = f"{uuid.uuid4()}.mp4"
         video_path = os.path.join(VIDEO_DIR, video_filename)
         
-        # Build the command to run the inference script
+        # Build the command to run the inference script (replace with your actual command)
         command = [
             'python', 'inference.py',
             '--prompt', prompt,
@@ -42,8 +42,14 @@ if st.button("Generate Video"):
                     st.write("### Process Errors:")
                     st.code(result.stderr, language='bash')
                 
-                # Display the generated video
-                st.video(video_path)
+                # Check if the file exists and then read it as bytes
+                if os.path.exists(video_path):
+                    with open(video_path, "rb") as f:
+                        video_bytes = f.read()
+                    st.video(video_bytes)
+                else:
+                    st.error("Video file not found after generation.")
+                    
             except subprocess.CalledProcessError as e:
                 st.error("Video generation failed.")
                 st.write("### Error Details:")
