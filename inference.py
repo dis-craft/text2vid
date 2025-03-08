@@ -1,39 +1,41 @@
-import argparse
-from moviepy.editor import TextClip
-import sys
+import cv2
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+import os
 
-def generate_video(prompt, output, num_frames, resolution, aspect_ratio):
-    """
-    Dummy video generation: Create a 5-second video with a text overlay of the prompt.
-    """
-    try:
-        # For simplicity, assume 1280x720 resolution.
-        width, height = 1280, 720
-        
-        # Create a text clip (you can customize font, size, etc.)
-        txt_clip = TextClip(prompt, fontsize=70, color='white', size=(width, height),
-                            bg_color='black', method='caption')
-        txt_clip = txt_clip.set_duration(5)
-        
-        # Write the video file to the specified output path
-        txt_clip.write_videofile(output, fps=24, codec="libx264")
-    except Exception as e:
-        print(f"Error generating video: {e}", file=sys.stderr)
-        sys.exit(1)
+def generate_video_with_opencv(prompt, output, duration=5, fps=24):
+    width, height = 1280, 720
+    total_frames = duration * fps
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output, fourcc, fps, (width, height))
+    
+    font_path = "arial.ttf"
+    font_size = 70
 
-def main():
-    parser = argparse.ArgumentParser(description="Generate video from text prompt")
-    parser.add_argument('--prompt', type=str, required=True, help='Text prompt for the video')
-    parser.add_argument('--output', type=str, required=True, help='Output video file path')
-    parser.add_argument('--num-frames', type=int, default=97, help='Number of frames (dummy parameter)')
-    parser.add_argument('--resolution', type=str, default='720p', help='Video resolution (dummy parameter)')
-    parser.add_argument('--aspect-ratio', type=str, default='16:9', help='Video aspect ratio (dummy parameter)')
+    for i in range(total_frames):
+        image = Image.new("RGB", (width, height), color=(0, 0, 0))
+        draw = ImageDraw.Draw(image)
+        
+        try:
+            font = ImageFont.truetype(font_path, font_size)
+        except IOError:
+            font = ImageFont.load_default()
+        
+        # Use textbbox to determine text dimensions
+        bbox = draw.textbbox((0, 0), prompt, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        text_x = (width - text_width) // 2
+        text_y = (height - text_height) // 2
+        
+        draw.text((text_x, text_y), prompt, font=font, fill=(255, 255, 255))
+        
+        frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        out.write(frame)
     
-    args = parser.parse_args()
-    
-    print("Starting dummy video generation...")
-    generate_video(args.prompt, args.output, args.num_frames, args.resolution, args.aspect_ratio)
-    print("Video generation completed.")
+    out.release()
+    print("Video generation completed with OpenCV.")
 
 if __name__ == "__main__":
-    main()
+    generate_video_with_opencv("Hello, OpenCV!", "output.mp4")
